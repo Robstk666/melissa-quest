@@ -276,7 +276,7 @@ select option{color:#111}
 <body>
 <main class="game px" id="game"></main>
 <script>
-const API='https://nhsasyxsokfktkckgamh.supabase.co',KEY='sb_publishable_M1FZs_Cegd8fTj5WdlYPFg_WE4FRPF5';
+const API='https://script.google.com/macros/s/AKfycbwdC-WbjEziFNVdGUDQxUkcXBXdLoGes03NiXxtjDyhDBrPy2igAeKfpj00OSgxOOdt/exec';
 const LS={get(k){try{return localStorage.getItem('mq_'+k)}catch(e){return null}},set(k,v){try{localStorage.setItem('mq_'+k,v)}catch(e){}},del(k){try{localStorage.removeItem('mq_'+k)}catch(e){}}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -296,10 +296,10 @@ const U={screen:'load',role:null,pin:null,pinRole:null,tab:'quests',ptab:'check'
 
 async function rpc(fn,args){
   let r,j=null;
-  try{r=await fetch(API+'/rest/v1/rpc/'+fn,{method:'POST',headers:{apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify(args)})}catch(e){throw new Error('net')}
-  try{j=await r.json()}catch(e){}
-  if(!r.ok)throw new Error(j&&j.message||'net');
-  return j;
+  try{r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn,args})})}catch(e){throw new Error('net')}
+  try{j=await r.json()}catch(e){throw new Error('net')}
+  if(!j||j.error)throw new Error(j&&j.error||'net');
+  return j.result;
 }
 const errText=e=>ERR[e.message]||ERR.net;
 
