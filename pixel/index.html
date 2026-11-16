@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Квест Мелиссы</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Pixelify+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: demo switcher on top, one phone-sized game screen below; single dark "night arcade" theme by choice */
+  color-scheme: dark;
+  --night:#1a1c3d;      /* page + game sky */
+  --panel:#2b2f63;      /* cards */
+  --ink:#fff6dc;        /* text */
+  --dim:#aab0e6;        /* secondary text */
+  --pink:#ff5d8f;       /* primary action */
+  --mint:#3ddc97;       /* done / good */
+  --sun:#ffd23f;        /* points, stars */
+  --sky:#59c3ff;        /* waiting */
+  --line:#0c0d22;       /* pixel outlines */
+  --display:"Press Start 2P","Courier New",monospace;
+  --body:"Pixelify Sans","Trebuchet MS",Verdana,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--night);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.35;
+  display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 16px 16px}
+button,input{font-family:inherit;font-size:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+
+/* pixel frame: 4px stepped outline without rounded corners */
+.px{border:0;box-shadow:0 -4px 0 var(--line),0 4px 0 var(--line),-4px 0 0 var(--line),4px 0 0 var(--line)}
+
+.demo{width:100%;max-width:420px;display:flex;flex-direction:column;gap:6px}
+.demo small{font-size:13px;color:var(--dim)}
+.roles{display:flex;gap:10px;flex-wrap:wrap;padding:4px}
+.roles button{flex:1;min-width:84px;background:var(--panel);padding:8px 6px;font-weight:600}
+.roles button[aria-pressed="true"]{background:var(--sun);color:var(--line)}
+.roles .ghost{flex:0 0 auto;background:transparent;color:var(--dim);font-size:14px;box-shadow:none;text-decoration:underline}
+
+.game{width:100%;max-width:420px;flex:1;min-height:560px;display:flex;flex-direction:column;background:
+  linear-gradient(#23265a 0 55%,#34286b 55% 100%);position:relative;overflow:hidden;margin:4px}
+.stars{position:absolute;inset:0;pointer-events:none;background-image:
+  radial-gradient(#fff 1px,transparent 1.5px),radial-gradient(#ffd23f 1px,transparent 1.5px);
+  background-size:90px 70px,130px 110px;background-position:10px 20px,60px 50px;opacity:.35}
+.hud{position:relative;display:flex;gap:12px;align-items:center;padding:14px 14px 10px}
+.ava{width:64px;height:64px;background:var(--panel);flex:0 0 auto;display:grid;place-items:center;padding:6px}
+.ava svg{width:100%;height:100%}
+.hud h1{font-family:var(--display);font-size:12px;line-height:1.5;text-wrap:balance}
+.hud .lvl{color:var(--sun);font-size:15px;font-weight:600}
+.chips{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.chip{background:var(--line);padding:2px 8px;font-size:14px;white-space:nowrap}
+.xp{position:relative;margin:2px 18px 8px;display:grid;grid-template-columns:repeat(20,1fr);gap:2px;height:16px;background:var(--line);padding:3px}
+.xp i{background:#3a3f7d}
+.xp i.on{background:var(--sun)}
+.xpnote{position:relative;display:flex;justify-content:space-between;margin:0 16px 8px;font-size:14px;color:var(--dim);font-variant-numeric:tabular-nums}
+
+.view{position:relative;flex:1;overflow-y:auto;padding:6px 16px 14px;display:flex;flex-direction:column;gap:12px}
+h2{font-family:var(--display);font-size:10px;color:var(--sun);letter-spacing:.5px;margin-top:4px}
+.q{display:flex;align-items:center;gap:10px;background:var(--panel);padding:10px;width:100%;text-align:left}
+.q .ic{width:40px;height:40px;background:var(--line);display:grid;place-items:center;font-size:22px;flex:0 0 auto}
+.q .t{flex:1;min-width:0}
+.q .t b{display:block;font-weight:600}
+.q .t span{font-size:14px;color:var(--dim)}
+.q .pts{font-family:var(--display);font-size:10px;color:var(--sun);white-space:nowrap}
+.q.pending{background:#24507a}.q.pending .t span{color:var(--sky)}
+.q.done{background:#1f5a48;opacity:.85}.q.done .t b{text-decoration:line-through}
+.q.done .t span{color:var(--mint)}
+button.q:active,.btn:active{transform:translateY(2px)}
+.btn{background:var(--pink);color:#fff;padding:9px 12px;font-weight:700}
+.btn.mint{background:var(--mint);color:var(--line)}
+.btn.flat{background:var(--line);color:var(--ink)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.card{background:var(--panel);padding:12px;display:flex;flex-direction:column;gap:8px}
+.card p{font-size:16px}
+.muted{color:var(--dim);font-size:14px}
+
+.goal{display:flex;gap:16px;align-items:center}
+.phone{width:104px;height:176px;background:var(--line);padding:8px;position:relative;flex:0 0 auto}
+.phone .scr{width:100%;height:100%;background:#12132c;position:relative;overflow:hidden;display:flex;align-items:flex-end}
+.phone .fill{width:100%;background:repeating-linear-gradient(var(--pink) 0 8px,#ff7fa6 8px 16px);transition:height .6s steps(8)}
+.phone .pct{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-size:13px;text-shadow:2px 2px 0 var(--line)}
+.phone::before{content:"";position:absolute;top:8px;left:50%;width:28px;height:6px;margin-left:-14px;background:var(--line);z-index:1}
+.marks{display:flex;flex-direction:column;gap:6px;font-size:15px}
+.marks .hit{color:var(--mint)}
+.avapick{display:flex;gap:12px;padding:4px}
+.avapick button{width:56px;height:56px;background:var(--panel);padding:6px}
+.avapick button[aria-pressed="true"]{background:var(--sun)}
+.avapick svg{width:100%;height:100%}
+
+.msg{background:var(--panel);padding:10px}
+.msg b{color:var(--sun);font-weight:600}
+.msg.sys b{color:var(--mint)}
+
+.nav{position:relative;display:flex;background:var(--line)}
+.nav button{flex:1;background:transparent;border:0;padding:12px 4px 10px;font-weight:600;color:var(--dim);position:relative}
+.nav button[aria-pressed="true"]{color:var(--sun);background:#191a3a}
+.nav .dot{position:absolute;top:8px;right:22%;width:8px;height:8px;background:var(--pink)}
+
+input[type=text],input[type=number]{background:var(--line);border:0;padding:9px 10px;min-width:0;flex:1}
+input[type=number]{flex:0 0 70px}
+label{font-size:14px;color:var(--dim)}
+
+.over{position:absolute;inset:0;background:rgba(12,13,34,.92);display:grid;place-items:center;padding:20px;z-index:5;text-align:center}
+.over .box{display:flex;flex-direction:column;gap:14px;align-items:center;max-width:300px}
+.over h3{font-family:var(--display);font-size:14px;line-height:1.6;color:var(--sun);text-wrap:balance}
+.over .big{font-family:var(--display);font-size:30px;font-variant-numeric:tabular-nums}
+.over .sprite{width:96px;height:96px;animation:hop .5s steps(2) infinite alternate}
+@keyframes hop{to{transform:translateY(-14px)}}
+.toast{position:absolute;left:16px;right:16px;bottom:64px;background:var(--mint);color:var(--line);padding:10px;font-weight:700;text-align:center;z-index:4}
+.coin{position:absolute;width:12px;height:12px;background:var(--sun);box-shadow:0 0 0 3px var(--line);z-index:6;pointer-events:none;animation:fly .9s steps(9) forwards}
+@keyframes fly{to{transform:translate(var(--dx),var(--dy));opacity:0}}
+@media (prefers-reduced-motion:reduce){.over .sprite,.coin{animation:none}.phone .fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="demo">
+  <small>Прототип. Смотреть глазами:</small>
+  <div class="roles" id="roles"></div>
+</div>
+<main class="game px" id="game"></main>
+
+<script>
+/* ---------- pixel sprites (8x8) ---------- */
+const PAL={a:'#9aa3b5',o:'#ff9a3c',w:'#fff6dc',k:'#0c0d22',p:'#ff5d8f',g:'#59c3ff',y:'#ffd23f',b:'#fff6dc'};
+const SPR={
+  cat:['a......a','aa....aa','aaaaaaaa','akaaaaka','aaappaaa','aaaaaaaa','.aaaaaa.','.aa..aa.'],
+  fox:['o......o','oo....oo','oooooooo','okooooko','wwooooww','.wwkkww.','..wwww..','...ww...'],
+  bunny:['.b....b.','.b....b.','.bp..pb.','.bbbbbb.','.bkbbkb.','.bbppbb.','.bbbbbb.','..b..b..'],
+  robot:['...y....','..gggg..','.gggggg.','.gkggkg.','.gggggg.','.gwwwwg.','.gggggg.','..g..g..']
+};
+function sprite(name){
+  let r='';SPR[name].forEach((row,y)=>[...row].forEach((c,x)=>{if(c!=='.')r+=`<rect x="${x}" y="${y}" width="1.02" height="1.02" fill="${PAL[c]}"/>`}));
+  return `<svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- state (demo data, lives in memory only) ---------- */
+const LEVELS=['Новичок','Искатель','Мастер','Легенда','Победитель'];
+function fresh(){return{
+  role:'kid',tab:'quests',avatar:'cat',points:96,target:300,day:9,days:30,streak:4,season:1,unread:1,
+  over:null,toast:'',timer:null,
+  tasks:[
+    {id:1,ic:'🍽️',t:'Убрать со стола после еды',p:2,k:'day',s:'done'},
+    {id:2,ic:'📚',t:'Уроки вовремя',p:3,k:'day',s:'pending'},
+    {id:3,ic:'🧹',t:'Порядок на рабочем столе',p:1,k:'day',s:'todo'},
+    {id:4,ic:'🛏️',t:'Заправить постель',p:1,k:'day',s:'todo'},
+    {id:5,ic:'🤸',t:'Зарядка 5 минут',p:2,k:'day',s:'todo',timer:true},
+    {id:6,ic:'🌀',t:'Пропылесосить дома',p:5,k:'week',s:'todo'},
+    {id:7,ic:'🧺',t:'Стирка: загрузить, разгрузить, протереть',p:4,k:'week',s:'todo'},
+    {id:8,ic:'👕',t:'Развесить и разнести бельё',p:3,k:'week',s:'todo'},
+    {id:9,ic:'🚿',t:'Душ',p:0,k:'care',s:'todo'}
+  ],
+  msgs:[{from:'Папа',text:'Четыре дня подряд без пропусков. Горжусь тобой!'},{from:'Игра',text:'Мама подтвердила: Убрать со стола. +2',sys:true}],
+  nextId:20
+}}
+let S=fresh();
+const pct=()=>Math.min(100,Math.round(S.points/S.target*100));
+const level=()=>Math.min(4,Math.floor(pct()/25));
+
+/* ---------- sound + coins ---------- */
+let ac;function beep(f=660,d=.08){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();const o=ac.createOscillator(),g=ac.createGain();o.type='square';o.frequency.value=f;g.gain.value=.04;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+function coins(){const g=document.getElementById('game');for(let i=0;i<14;i++){const c=document.createElement('i');c.className='coin';c.style.left='50%';c.style.top='55%';c.style.setProperty('--dx',(Math.random()*280-140)+'px');c.style.setProperty('--dy',(-Math.random()*260-40)+'px');g.appendChild(c);setTimeout(()=>c.remove(),950)}}
+function toast(t){S.toast=t;render();clearTimeout(toast.h);toast.h=setTimeout(()=>{S.toast='';render()},2200)}
+
+/* ---------- game logic ---------- */
+function addPoints(n,why){
+  const before=level();S.points=Math.min(S.target,S.points+n);
+  S.msgs.unshift({from:'Игра',text:why+' +'+n,sys:true});S.unread++;
+  coins();beep(880);setTimeout(()=>beep(1175),90);
+  if(S.points>=S.target&&S.season===1)S.over='win';
+  else if(level()>before)S.over='level';
+}
+function kidTap(id){
+  const t=S.tasks.find(x=>x.id===id);if(!t||t.s!=='todo')return;
+  if(t.timer){startTimer(id);return}
+  if(t.k==='care'){t.s='done';beep(784);toast('Отмечено. Это забота о себе, очки тут не нужны.');return}
+  t.s='pending';beep(523);toast('Отправлено маме на проверку');
+}
+function startTimer(id){S.timer={id,left:300};S.over='timer';render();
+  clearInterval(startTimer.h);startTimer.h=setInterval(()=>{S.timer.left-=10;if(S.timer.left<=0){clearInterval(startTimer.h);const t=S.tasks.find(x=>x.id===id);t.s='pending';S.over=null;S.timer=null;beep(988,.2);toast('Зарядка сделана! Ждём подтверждения')}else{beep(330,.03);render()}},330)}
+function approve(id,ok){
+  const t=S.tasks.find(x=>x.id===id);if(!t)return;
+  if(ok){t.s='done';addPoints(t.p,(S.role==='dad'?'Папа':'Мама')+' подтвердил'+(S.role==='dad'?'':'а')+': '+t.t+'.')}
+  else{t.s='todo';S.msgs.unshift({from:S.role==='dad'?'Папа':'Мама',text:'Давай доделаем: '+t.t});S.unread++}
+  render();
+}
+
+/* ---------- views ---------- */
+function quest(t,asButton){
+  const st={todo:t.k==='care'?'Без очков, просто отметь':'Нажми, когда сделаешь',pending:'Ждёт проверки',done:'Готово'}[t.s];
+  const inner=`<span class="ic">${t.s==='done'?'✔️':t.ic}</span><span class="t"><b>${esc(t.t)}</b><span>${st}</span></span>${t.p?`<span class="pts">+${t.p}</span>`:''}`;
+  return asButton&&t.s==='todo'?`<button class="q px ${t.s}" data-act="tap" data-id="${t.id}">${inner}</button>`:`<div class="q px ${t.s}">${inner}</div>`;
+}
+function hud(){
+  const cells=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(pct()/5)?'on':''}"></i>`).join('');
+  return `<div class="hud"><div class="ava px">${sprite(S.avatar)}</div><div>
+    <h1>Мелисса</h1><div class="lvl">Ур. ${level()+1} · ${LEVELS[level()]}</div>
+    <div class="chips"><span class="chip">🔥 ${S.streak} дня подряд</span><span class="chip">День ${S.day} из ${S.days}</span></div></div></div>
+  <div class="xp" role="img" aria-label="Прогресс ${pct()}%">${cells}</div>
+  <div class="xpnote"><span>⭐ ${S.points} из ${S.target}</span><span>${S.season===2?'Сезон 2':'до телефона: '+(S.target-S.points)}</span></div>`;
+}
+function kidView(){
+  if(S.tab==='goal'){
+    const marks=[25,50,75,100].map((m,i)=>`<span class="${pct()>=m?'hit':''}">${pct()>=m?'✔':'▫'} ${m}% · ${i<3?'уровень «'+LEVELS[i+1]+'»':'телефон твой'}</span>`).join('');
+    return `<h2>ТВОЯ ЦЕЛЬ</h2><div class="card px"><div class="goal"><div class="phone"><div class="scr"><div class="fill" style="height:${pct()}%"></div><div class="pct">${pct()}%</div></div></div>
+      <div class="marks"><b>${S.season===2?'Новая цель: наушники':'Свой телефон'}</b>${marks}</div></div>
+      <p class="muted">Очки только прибавляются. Их никто не отнимает.</p></div>
+      <h2>ТВОЙ ГЕРОЙ</h2><div class="avapick">${Object.keys(SPR).map(k=>`<button class="px" data-act="ava" data-id="${k}" aria-pressed="${S.avatar===k}" aria-label="${k}">${sprite(k)}</button>`).join('')}</div>`;
+  }
+  if(S.tab==='mail')return `<h2>ПОЧТА</h2>`+S.msgs.map(m=>`<div class="msg px ${m.sys?'sys':''}"><b>${esc(m.from)}:</b> ${esc(m.text)}</div>`).join('');
+  const g=k=>S.tasks.filter(t=>t.k===k).map(t=>quest(t,true)).join('');
+  return `<h2>КВЕСТЫ НА СЕГОДНЯ</h2>${g('day')}<h2>КВЕСТЫ НЕДЕЛИ</h2>${g('week')}<h2>ЗАБОТА О СЕБЕ</h2>${g('care')}`
+    +(S.season===2?`<h2>БИРЖА ЗАКАЗОВ</h2><div class="card px"><p><b>Смонтировать видео для мамы</b></p><p class="muted">Простое 500 ₽, с эффектами 1000 ₽. Цену назначила ты.</p></div>`:'');
+}
+function parentView(){
+  const who=S.role==='mom'?'Мама':'Папа';
+  const pend=S.tasks.filter(t=>t.s==='pending');
+  let h=`<h2>ЖДУТ ПРОВЕРКИ</h2>`+(pend.length?pend.map(t=>`<div class="card px"><p><b>${t.ic} ${esc(t.t)}</b> <span class="muted">+${t.p}</span></p>
+    <div class="row"><button class="btn mint px" data-act="ok" data-id="${t.id}">Подтвердить</button><button class="btn flat px" data-act="no" data-id="${t.id}">Вернуть доделать</button></div></div>`).join('')
+    :`<p class="muted">Пока пусто. Переключись на Мелиссу и отметь квест.</p>`);
+  if(S.role==='mom')h+=`<h2>НОВЫЙ КВЕСТ</h2><form class="card px" data-form="task"><label for="nt">Что сделать</label><div class="row"><input type="text" id="nt" maxlength="40" placeholder="Полить цветы" required><input type="number" id="np" min="1" max="10" value="2" aria-label="Очки"></div><button class="btn px">Добавить в квесты</button></form>`;
+  else h+=`<h2>ЧЕЛЛЕНДЖ НЕДЕЛИ</h2><form class="card px" data-form="chal"><label for="ch">Задание от папы, +5 очков</label><input type="text" id="ch" maxlength="40" placeholder="10 приседаний каждый день" required><button class="btn px">Выдать челлендж</button></form>`;
+  h+=`<h2>НАПИСАТЬ МЕЛИССЕ</h2><form class="card px" data-form="msg"><div class="row"><input type="text" id="mt" maxlength="80" placeholder="Сообщение" aria-label="Сообщение" required><button class="btn px">Отправить</button></div>
+    <div class="row">${['Горжусь тобой!','Так держать!','Вижу, как ты стараешься'].map(q=>`<button type="button" class="btn flat px" data-act="quick" data-id="${q}">${q}</button>`).join('')}</div></form>`;
+  const done=S.tasks.filter(t=>t.s==='done').length;
+  h+=`<h2>СВОДКА</h2><div class="card px"><p>Сегодня сделано: <b>${done}</b> из ${S.tasks.length}. Серия: <b>${S.streak} дня</b>.</p><p class="muted">${who} видит то же, что второй родитель. Очки не отнимаются, телефоном не угрожаем.</p></div>`;
+  return h;
+}
+function overlay(){
+  if(S.over==='timer'){const l=S.timer.left;return `<div class="over"><div class="box"><div class="sprite">${sprite(S.avatar)}</div><h3>ЗАРЯДКА!</h3><div class="big">${Math.floor(l/60)}:${String(l%60).padStart(2,'0')}</div><p class="muted">В прототипе время идёт в 30 раз быстрее</p></div></div>`}
+  if(S.over==='level')return `<div class="over"><div class="box"><div class="sprite">${sprite(S.avatar)}</div><h3>НОВЫЙ УРОВЕНЬ!</h3><p>Теперь ты <b>${LEVELS[level()]}</b>. Пройдено ${pct()}% пути.</p><button class="btn px" data-act="close">Дальше</button></div></div>`;
+  if(S.over==='win')return `<div class="over"><div class="box"><div class="sprite">${sprite(S.avatar)}</div><h3>ЦЕЛЬ ДОСТИГНУТА!</h3><p>Ты заработала свой телефон сама. ${S.target} очков за ${S.day} дней.</p><button class="btn px" data-act="s2">Начать Сезон 2</button></div></div>`;
+  return '';
+}
+function render(){
+  document.getElementById('roles').innerHTML=[['kid','Мелисса'],['mom','Мама'],['dad','Папа']].map(([k,n])=>`<button class="px" data-act="role" data-id="${k}" aria-pressed="${S.role===k}">${n}</button>`).join('')
+    +`<button class="ghost" data-act="boost">+50 очков</button><button class="ghost" data-act="reset">Сначала</button>`;
+  const kid=S.role==='kid';
+  const nav=kid?`<nav class="nav">${[['quests','Квесты'],['goal','Цель'],['mail','Почта']].map(([k,n])=>`<button data-act="tab" data-id="${k}" aria-pressed="${S.tab===k}">${n}${k==='mail'&&S.unread?'<span class="dot"></span>':''}</button>`).join('')}</nav>`:'';
+  const g=document.getElementById('game');const v=g.querySelector('.view');const sc=v?v.scrollTop:0;
+  const focusId=document.activeElement&&document.activeElement.id,val=focusId&&document.activeElement.value;
+  g.innerHTML=`<div class="stars"></div>${hud()}<div class="view">${kid?kidView():parentView()}</div>${nav}${S.toast?`<div class="toast px" role="status">${esc(S.toast)}</div>`:''}${overlay()}`;
+  g.querySelector('.view').scrollTop=sc;
+  if(focusId){const el=document.getElementById(focusId);if(el){el.value=val;el.focus()}}
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
+  if(a==='role'){S.role=id;S.toast='';beep(440,.04)}
+  else if(a==='tab'){S.tab=id;if(id==='mail')S.unread=0;beep(440,.04)}
+  else if(a==='tap'){kidTap(+id);return render()}
+  else if(a==='ava'){S.avatar=id;beep(600,.05)}
+  else if(a==='ok')return approve(+id,true);
+  else if(a==='no')return approve(+id,false);
+  else if(a==='close')S.over=null;
+  else if(a==='boost'){addPoints(50,'Демо-бонус.')}
+  else if(a==='reset'){clearInterval(startTimer.h);S=fresh()}
+  else if(a==='quick'){S.msgs.unshift({from:S.role==='dad'?'Папа':'Мама',text:id});S.unread++;toast('Отправлено');return}
+  else if(a==='s2'){S.season=2;S.over=null;S.points=0;S.target=200;S.day=1;S.role='kid';S.tab='quests';
+    S.tasks.forEach(t=>{t.s='todo'});S.msgs.unshift({from:'Игра',text:'Сезон 2 открыт: своя цель, копилка и биржа заказов.',sys:true});S.unread++}
+  render();
+});
+document.addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target.dataset.form;const who=S.role==='dad'?'Папа':'Мама';
+  if(f==='task'){const t=document.getElementById('nt').value.trim(),p=Math.max(1,Math.min(10,+document.getElementById('np').value||1));if(!t)return;
+    S.tasks.push({id:S.nextId++,ic:'⭐',t,p,k:'day',s:'todo'});document.activeElement.blur();toast('Квест добавлен')}
+  else if(f==='chal'){const t=document.getElementById('ch').value.trim();if(!t)return;
+    S.tasks.push({id:S.nextId++,ic:'🏆',t:'Челлендж: '+t,p:5,k:'week',s:'todo'});S.msgs.unshift({from:'Папа',text:'Новый челлендж недели: '+t});S.unread++;document.activeElement.blur();toast('Челлендж выдан')}
+  else if(f==='msg'){const t=document.getElementById('mt').value.trim();if(!t)return;S.msgs.unshift({from:who,text:t});S.unread++;document.activeElement.blur();toast('Отправлено')}
+});
+render();
+</script>
+</body>
+</html>
