@@ -258,7 +258,8 @@ body{padding:8px 10px 10px}
 .screen{position:relative;flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center;padding:28px 22px;text-align:center}
 .screen h1{font-family:var(--display);font-size:18px;line-height:1.5;text-wrap:balance}
 .screen .roles{flex-direction:column}
-.screen .roles button{padding:16px;font-size:19px}
+.screen .roles button{padding:14px;font-size:19px}
+.screen .roles small{display:block;font-size:13px;font-weight:500;opacity:.8;margin-top:2px}
 input,select{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:9px 10px;min-width:0;color:inherit;font-family:inherit;font-size:inherit}
 select option{color:#111}
 .pin{letter-spacing:10px;text-align:center;font-size:26px;width:170px;align-self:center}
@@ -311,7 +312,7 @@ function dayLabel(s){const t=today();if(s===t)return 'сегодня';if(s===shi
 
 /* ---------- derived ---------- */
 const fam=()=>D.family;
-const theme=()=>(D&&fam().theme)||LS.get('theme')||'glass';
+const theme=()=>LS.get('mytheme')||(D&&fam().theme)||LS.get('theme')||'glass';
 const pct=()=>Math.min(100,Math.round(D.points/fam().target*100));
 const level=()=>Math.min(4,Math.floor(pct()/25));
 function dayNo(){const a=new Date(fam().start_date+'T12:00:00'),b=new Date(today()+'T12:00:00');return Math.max(1,Math.round((b-a)/864e5)+1)}
@@ -358,8 +359,8 @@ const adult=()=>({p_role:U.role,p_pin:U.pin});
 function joinScreen(){return `<div class="screen"><h1>Квест Мелиссы</h1><p>Введи семейный код, который прислал папа.</p>
   <form data-form="join" class="card px"><label for="code">Семейный код</label><input class="codein" id="code" maxlength="16" autocomplete="off" autocapitalize="characters" required>
   <div class="err" role="alert">${esc(U.err)}</div><button class="btn px">Войти</button></form></div>`}
-function whoScreen(){return `<div class="screen"><h1>Кто сейчас играет?</h1>
-  <div class="roles"><button class="px" data-act="who" data-id="kid">${esc(fam().child_name)}</button><button class="px" data-act="who" data-id="mom">Мама</button><button class="px" data-act="who" data-id="dad">Папа</button></div>
+function whoScreen(){return `<div class="screen"><h1>Кто заходит?</h1>
+  <div class="roles"><button class="px" data-act="who" data-id="kid">${esc(fam().child_name)}<small>играю и выполняю квесты</small></button><button class="px" data-act="who" data-id="mom">Мама<small>проверяю и поддерживаю</small></button><button class="px" data-act="who" data-id="dad">Папа<small>проверяю и поддерживаю</small></button></div>
   <div class="err" role="alert">${esc(U.err)}</div><button class="link" data-act="leave">Ввести другой семейный код</button></div>`}
 function pinScreen(){const has=fam()[U.pinRole+'_has_pin'];return `<div class="screen"><h1>${WHO[U.pinRole]}</h1>
   <p>${has?'Введи свой PIN.':'Придумай PIN из 4 цифр. Он нужен, чтобы подтверждать квесты. Запомни его.'}</p>
@@ -371,7 +372,7 @@ function hud(){
   const f=fam(),cells=Array.from({length:20},(_,i)=>`<i class="${i<Math.round(pct()/5)?'on':''}"></i>`).join(''),st=streak(),left=Math.max(0,f.target-D.points);
   return `<button class="topbtn" data-act="switch">${WHO[U.role]==='Мелисса'?esc(f.child_name):WHO[U.role]} · сменить</button>
   <div class="hud"><div class="ava px">${sprite(f.avatar)}</div><div>
-    <h1>${esc(f.child_name)}</h1><div class="lvl">Ур. ${level()+1} · ${LEVELS[level()]}</div>
+    <h1>${U.role==='kid'?esc(f.child_name):'Прогресс: '+esc(f.child_name)}</h1><div class="lvl">Ур. ${level()+1} · ${LEVELS[level()]}</div>
     <div class="chips"><span class="chip">🔥 ${st} ${plural(st,'день','дня','дней')} подряд</span><span class="chip">День ${Math.min(dayNo(),f.days)} из ${f.days}</span></div></div></div>
   <div class="xp" role="img" aria-label="Прогресс ${pct()}%">${cells}</div>
   <div class="xpnote"><span>⭐ ${D.points} из ${f.target}</span><span>${left?'осталось '+left:'цель достигнута'}</span></div>`;
@@ -417,7 +418,8 @@ function parentView(){
       <h2>Цель и срок</h2><form class="card px" data-form="settings"><div class="field"><label for="sg">Цель</label><input type="text" id="sg" maxlength="40" value="${esc(f.goal_title)}" required></div>
       <div class="row"><div class="field"><label for="st">Очков до цели</label><input type="number" id="st" min="10" max="5000" value="${f.target}" required></div><div class="field"><label for="sd">Дней</label><input type="number" id="sd" min="1" max="365" value="${f.days}" required></div></div>
       <div class="field"><label for="ss">Первый день</label><input type="date" id="ss" value="${esc(f.start_date)}" required></div><button class="btn px">Сохранить</button></form>
-      <h2>Пригласить в игру</h2><div class="card px"><p>Семейный код: <span class="codebox">${esc(code)}</span></p><button class="btn flat px" data-act="copy" data-id="${esc(link)}">Скопировать ссылку для входа</button><p class="note">Ссылку и код отправляй только своим.</p></div>`;
+      <h2>Оформление на этом устройстве</h2><div class="row pick"><button class="btn flat px" data-act="mytheme" data-id="glass" aria-pressed="${theme()==='glass'}">Стекло и лампы</button><button class="btn flat px" data-act="mytheme" data-id="pixel" aria-pressed="${theme()==='pixel'}">Пиксели</button></div>
+      <h2>Пригласить в семью</h2><div class="card px"><p>Семейный код: <span class="codebox">${esc(code)}</span></p><button class="btn flat px" data-act="copy" data-id="${esc(link)}">Скопировать ссылку для входа</button><p class="note">Ссылку и код отправляй только своим.</p></div>`;
   }
   const pend=D.done.filter(d=>d.status==='pending'),done=D.done.filter(d=>d.day===today()&&d.status==='approved').length;
   return `<h2>Ждут проверки</h2>`+(pend.length?pend.map(d=>`<div class="card px"><p><b>${esc(d.icon)} ${esc(d.title)}</b> <span class="muted">+${d.tp} · ${dayLabel(d.day)}</span></p>
@@ -470,7 +472,8 @@ document.addEventListener('click',async e=>{
   if(a==='stop'){clearInterval(startTimer.h);U.timer=null;U.over=null;return render()}
   if(a==='close'){U.over=null;return render()}
   if(a==='ava')return act('mq_profile',{p_avatar:id,p_theme:null});
-  if(a==='theme')return act('mq_profile',{p_avatar:null,p_theme:id});
+  if(a==='theme'){LS.set('mytheme',id);return act('mq_profile',{p_avatar:null,p_theme:id})}
+  if(a==='mytheme'){LS.set('mytheme',id);return render()}
   if(a==='ok'||a==='no'){const ok=await act('mq_decide',Object.assign(adult(),{p_done:id,p_ok:a==='ok'}),a==='ok'?'Подтверждено':'Возвращено на доделку');if(ok&&a==='ok'){coins();beep(880)}return}
   if(a==='hide')return act('mq_task_hide',Object.assign(adult(),{p_task:id}),'Квест убран');
   if(a==='icon'){U.icon=id;return render()}
