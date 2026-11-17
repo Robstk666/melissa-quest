@@ -53,6 +53,9 @@ function hash_(pin, salt) {
   return b.map(function (x) { return ('0' + (x & 255).toString(16)).slice(-2); }).join('');
 }
 function fail_(code) { throw new Error('MQ:' + code); }
+var KINDS = ['day', 'school', 'alt', 'week', 'once', 'care'];
+function timerMin_(v) { return v === true ? 5 : Math.max(0, Math.min(60, parseInt(v, 10) || 0)); }
+function due_(v) { v = String(v == null ? '' : v).trim(); return /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : ''; }
 
 /* ---------- helpers ---------- */
 function fam_(code) {
@@ -89,9 +92,9 @@ function mq_state(a) {
     family: { child_name: f.child_name, goal_title: f.goal_title, target: f.target, start_date: f.start_date, days: f.days,
       season: f.season, avatar: f.avatar, theme: f.theme, mom_has_pin: !!f.mom_pin, dad_has_pin: !!f.dad_pin },
     tasks: tasks.filter(function (t) { return t.active; }).sort(function (x, y) { return x.sort - y.sort || (x.created_at < y.created_at ? -1 : 1); })
-      .map(function (t) { return { id: t.id, title: t.title, icon: t.icon, points: t.points, kind: t.kind, timer: t.timer }; }),
+      .map(function (t) { return { id: t.id, title: t.title, icon: t.icon, points: t.points, kind: t.kind, timer: timerMin_(t.timer), due: t.due || '' }; }),
     done: done.map(function (d) { var t = byId[d.task_id]; return { id: d.id, task_id: d.task_id, day: d.day, status: d.status, points: d.points,
-      by: d.decided_by || null, title: t.title, icon: t.icon, tp: t.points, kind: t.kind }; }),
+      by: d.decided_by || null, title: t.title, icon: t.icon, tp: t.points, kind: t.kind, at: d.created_at, due: t.due || '' }; }),
     msgs: msgs.map(function (m) { return { id: m.id, from: m.from_role, body: m.body, sys: m.sys, at: m.created_at }; }),
     points: points
   };
@@ -115,6 +118,13 @@ function mq_mark(a) {
   var td = today_();
   if (a.p_day !== td && a.p_day !== shift_(td, -1) && a.p_day !== shift_(td, 1)) fail_('bad_day');
   var all = rows_('done').slice();
+  var dow = new Date(a.p_day + 'T12:00:00Z').getUTCDay();
+  if (t.kind === 'school' && (dow === 0 || dow === 6)) fail_('weekend');
+  if (t.kind === 'alt') {
+    var y = shift_(a.p_day, -1);
+    if (all.some(function (d) { return d.task_id === t.id && d.day === y && d.status !== 'rejected'; })) fail_('alt_rest');
+  }
+  if (t.kind === 'once' && all.some(function (d) { return d.task_id === t.id && d.season === f.season && d.status !== 'rejected' && d.day !== a.p_day; })) fail_('already');
   var ex = all.filter(function (d) { return d.task_id === t.id && d.day === a.p_day; })[0];
   if (ex) {
     if (ex.status === 'rejected') { ex.status = 'pending'; ex.decided_by = null; ex.decided_at = null; save_('done', all); }
@@ -142,11 +152,22 @@ function mq_decide(a) {
 function mq_task_add(a) {
   var f = fam_(a.p_code); adult_(f, a.p_role, a.p_pin);
   var title = clip_(a.p_title, 60);
-  if (['day', 'week', 'care'].indexOf(a.p_kind) < 0 || !title) fail_('bad_task');
+  if (KINDS.indexOf(a.p_kind) < 0 || !title) fail_('bad_task');
   var pts = a.p_kind === 'care' ? 0 : Math.max(1, Math.min(10, parseInt(a.p_points, 10) || 1));
   var all = rows_('task').slice();
   all.push({ id: uid_(), family_id: f.id, title: title, icon: clip_(a.p_icon, 8) || '⭐', points: pts, kind: a.p_kind,
-    timer: false, active: true, sort: 100, created_at: new Date().toISOString() });
+    timer: timerMin_(a.p_timer), due: due_(a.p_due), active: true, sort: 100, created_at: new Date().toISOString() });
+  save_('task', all);
+  return mq_state(a);
+}
+function mq_task_edit(a) {
+  var f = fam_(a.p_code); adult_(f, a.p_role, a.p_pin);
+  var all = rows_('task').slice();
+  var t = all.filter(function (x) { return x.id === a.p_task && x.family_id === f.id; })[0];
+  if (!t) fail_('bad_task');
+  if (t.kind !== 'care' && a.p_points != null) t.points = Math.max(1, Math.min(10, parseInt(a.p_points, 10) || t.points));
+  if (a.p_timer != null) t.timer = timerMin_(a.p_timer);
+  if (a.p_due != null) t.due = due_(a.p_due);
   save_('task', all);
   return mq_state(a);
 }
@@ -209,7 +230,7 @@ function mq_reset_progress(a) {
 
 var API = { mq_state: mq_state, mq_set_pin: mq_set_pin, mq_check_pin: mq_check_pin, mq_mark: mq_mark, mq_decide: mq_decide,
   mq_task_add: mq_task_add, mq_task_hide: mq_task_hide, mq_say: mq_say, mq_profile: mq_profile, mq_settings: mq_settings,
-  mq_msg_del: mq_msg_del, mq_msg_clear: mq_msg_clear, mq_reset_progress: mq_reset_progress };
+  mq_task_edit: mq_task_edit, mq_msg_del: mq_msg_del, mq_msg_clear: mq_msg_clear, mq_reset_progress: mq_reset_progress };
 
 function handle_(body) {
   var out;
@@ -251,4 +272,32 @@ function setup() {
   var def = ss_().getSheetByName('Sheet1') || ss_().getSheetByName('Лист1');
   if (def && ss_().getSheets().length > 1) ss_().deleteSheet(def);
   Logger.log('Готово. Таблица: ' + ss_().getUrl() + ' Семейный код: ' + FAMILY_CODE);
+}
+
+/* ---------- price list v2 (17.11): run once from the editor ---------- */
+var PRESET_V2 = [
+  ['Сесть за уроки вовремя', '📝', 1, 'school', 0],
+  ['Уроки сделаны', '📚', 3, 'school', 0],
+  ['Убрать со стола после еды', '🍽️', 1, 'day', 0],
+  ['Порядок на рабочем столе', '🧹', 1, 'day', 0],
+  ['Заправить постель', '🛏️', 1, 'day', 0],
+  ['Зарядка 5 минут', '🤸', 1, 'day', 5],
+  ['Почистить зубы вечером', '🪥', 1, 'day', 0],
+  ['Тренировка: приседания 3×20, выпады 3×10', '💪', 4, 'alt', 0],
+  ['Пропылесосить дома', '🌀', 5, 'week', 0],
+  ['Стирка: загрузить, разгрузить, протереть', '🧺', 3, 'week', 0],
+  ['Развесить и разнести бельё', '👕', 3, 'week', 0],
+  ['Почистить зубы утром', '🪥', 0, 'care', 0],
+  ['Душ', '🚿', 0, 'care', 0]
+];
+function applyPresetV2() {
+  var f = rows_('family').filter(function (x) { return x.code === FAMILY_CODE; })[0];
+  var all = rows_('task').slice();
+  all.forEach(function (t) { if (t.family_id === f.id) t.active = false; });
+  PRESET_V2.forEach(function (s, i) {
+    all.push({ id: uid_(), family_id: f.id, title: s[0], icon: s[1], points: s[2], kind: s[3], timer: s[4], due: '', active: true,
+      sort: i + 1, created_at: new Date().toISOString() });
+  });
+  save_('task', all);
+  Logger.log('Новый прайс применён: ' + PRESET_V2.length + ' квестов');
 }
