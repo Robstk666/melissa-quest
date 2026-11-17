@@ -253,6 +253,9 @@ label{font-size:14px;color:var(--dim)}
 </style>
 <style>
 /* shared additions for the real app (both themes) */
+.msg{position:relative}
+.mdel{float:right;margin:-4px -6px 0 8px;background:transparent;border:0;color:inherit;opacity:.6;font-size:16px;padding:4px 8px;cursor:pointer;box-shadow:none}
+.mdel:hover{opacity:1}
 .xp{height:30px;margin-top:8px;margin-bottom:8px}
 .xpt{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 6px rgba(0,0,0,.6);pointer-events:none}
 .xpnote{font-size:16px}
@@ -303,10 +306,10 @@ const EMO={cat:'🐱',fox:'🦊',bunny:'🐰',robot:'🤖'};
 const LEVELS=['Новичок','Искатель','Мастер','Легенда','Победитель'];
 const WHO={mom:'Мама',dad:'Папа',kid:'Мелисса'};
 const ICONS=['⭐','🌱','🐾','📖','🎨','🧽','🏆','🎵'];
-const ERR={bad_code:'Код не подошёл. Проверь буквы и цифры.',bad_pin:'Неверный PIN.',pin_format:'PIN должен быть из 4 цифр.',pin_exists:'PIN уже задан. Введи его.',bad_day:'Эту дату отметить нельзя.',net:'Нет связи. Попробуй ещё раз.'};
+const ERR={bad_code:'Код не подошёл. Проверь буквы и цифры.',bad_pin:'Неверный PIN.',pin_format:'PIN должен быть из 4 цифр.',pin_exists:'PIN уже задан. Введи его.',not_admin:'Это может только папа.',bad_day:'Эту дату отметить нельзя.',net:'Нет связи. Попробуй ещё раз.'};
 
 let D=null,code=null,lastJson='',prevPoints=null;
-const U={screen:'load',role:null,pin:null,pinRole:null,tab:'quests',ptab:'check',over:null,toast:'',timer:null,err:'',busy:false,icon:'⭐'};
+const U={sure:null,screen:'load',role:null,pin:null,pinRole:null,tab:'quests',ptab:'check',over:null,toast:'',timer:null,err:'',busy:false,icon:'⭐'};
 
 async function rpc(fn,args){
   let r,j=null;
@@ -353,6 +356,7 @@ function accept(state){
     const k='lvl_'+fam().season,seen=LS.get(k),lv=D.points>=fam().target?5:level();
     if(seen===null)LS.set(k,lv);
     else if(lv>+seen){LS.set(k,lv);if(!U.over)U.over=lv===5?'win':'level'}
+    else if(lv<+seen)LS.set(k,lv);
   }
   prevPoints=D.points;
 }
@@ -419,7 +423,7 @@ function quest(t){
   const inner=`<span class="ic">${s==='done'?'✔️':esc(t.icon)}</span><span class="t"><b>${esc(t.title)}</b><span>${sub}</span></span>${t.points?`<span class="pts">+${t.points}<i class="mon"></i></span>`:''}`;
   return s==='todo'||s==='back'?`<button class="q px ${cls}" data-act="tap" data-id="${t.id}">${inner}</button>`:`<div class="q px ${cls}">${inner}</div>`;
 }
-function msgHtml(m){const who=m.sys?'Игра':m.from==='child'?fam().child_name:WHO[m.from]||'';return `<div class="msg px ${m.sys?'sys':''}"><b>${esc(who)}:</b> ${esc(m.body)}</div>`}
+function msgHtml(m){const who=m.sys?'Игра':m.from==='child'?fam().child_name:WHO[m.from]||'';const del=U.role==='dad'&&String(m.id).indexOf('tmp')!==0?`<button class="mdel" data-act="delmsg" data-id="${esc(m.id)}" aria-label="Удалить сообщение">✕</button>`:'';return `<div class="msg px ${m.sys?'sys':''}">${del}<b>${esc(who)}:</b> ${esc(m.body)}</div>`}
 function kidView(){
   const f=fam();
   if(U.tab==='goal'){
@@ -449,11 +453,14 @@ function parentView(){
     const link=location.origin+location.pathname+'#'+code;
     return `<h2>Написать ${esc(f.child_name)}</h2><form class="card px" data-form="say"><div class="row"><input type="text" id="mt" maxlength="200" placeholder="Сообщение" aria-label="Сообщение" required><button class="btn px">Отправить</button></div>
       <div class="row">${['Горжусь тобой!','Так держать!','Вижу, как ты стараешься'].map(q=>`<button type="button" class="btn flat px" data-act="quick" data-id="${q}">${q}</button>`).join('')}</div></form>
-      <h2>Последние письма</h2>${D.msgs.slice(0,8).map(msgHtml).join('')||'<p class="muted">Пока пусто.</p>'}
+      <h2>${U.role==='dad'?'Чат':'Последние письма'}</h2>${D.msgs.slice(0,U.role==='dad'?40:8).map(msgHtml).join('')||'<p class="muted">Пока пусто.</p>'}
       <h2>Цель и срок</h2><form class="card px" data-form="settings"><div class="field"><label for="sg">Цель</label><input type="text" id="sg" maxlength="40" value="${esc(f.goal_title)}" required></div>
       <div class="row"><div class="field"><label for="st">Монет до цели</label><input type="number" id="st" min="10" max="5000" value="${f.target}" required></div><div class="field"><label for="sd">Дней</label><input type="number" id="sd" min="1" max="365" value="${f.days}" required></div></div>
       <div class="field"><label for="ss">Первый день</label><input type="date" id="ss" value="${esc(f.start_date)}" required></div><button class="btn px">Сохранить</button></form>
       <h2>Оформление на этом устройстве</h2><div class="row pick"><button class="btn flat px" data-act="mytheme" data-id="glass" aria-pressed="${theme()==='glass'}">Стекло и лампы</button><button class="btn flat px" data-act="mytheme" data-id="pixel" aria-pressed="${theme()==='pixel'}">Пиксели</button></div>
+      ${U.role==='dad'?`<h2>Админ</h2><div class="card px"><p class="muted">Видно только папе. Действия нельзя отменить.</p>
+        <button class="btn flat px" data-act="sure" data-id="clearchat">${U.sure==='clearchat'?'Точно очистить весь чат? Нажми ещё раз':'Очистить весь чат'}</button>
+        <button class="btn flat px" data-act="sure" data-id="reset">${U.sure==='reset'?'Точно обнулить? Нажми ещё раз':'Обнулить монеты и отметки, начать с сегодня'}</button></div>`:''}
       <h2>Пригласить в семью</h2><div class="card px"><p>Семейный код: <span class="codebox">${esc(code)}</span></p><button class="btn flat px" data-act="copy" data-id="${esc(link)}">Скопировать ссылку для входа</button><p class="note">Ссылку и код отправляй только своим.</p></div>`;
   }
   const pend=D.done.filter(d=>d.status==='pending'),done=D.done.filter(d=>d.day===today()&&d.status==='approved').length;
@@ -511,6 +518,10 @@ document.addEventListener('click',async e=>{
   if(a==='ok'||a==='no'){const ok=a==='ok';
     const p=act('mq_decide',Object.assign(adult(),{p_done:id,p_ok:ok}),ok?'Подтверждено':'Возвращено на доделку',s=>{const d=s.done.find(x=>x.id===id&&x.status==='pending');if(!d)return;d.status=ok?'approved':'rejected';if(ok){d.points=d.tp;s.points+=d.tp}});
     if(ok){coins();beep(880)}return p}
+  if(a==='delmsg')return act('mq_msg_del',Object.assign(adult(),{p_msg:id}),'Сообщение удалено',s=>{s.msgs=s.msgs.filter(m=>m.id!==id)});
+  if(a==='sure'){if(U.sure!==id){U.sure=id;clearTimeout(U.sureH);U.sureH=setTimeout(()=>{U.sure=null;render()},5000);return render()}
+    U.sure=null;if(id==='clearchat')return act('mq_msg_clear',adult(),'Чат очищен',s=>{s.msgs=[]});
+    if(id==='reset')return act('mq_reset_progress',adult(),'Монеты и отметки обнулены',s=>{s.done=[];s.points=0;s.family.start_date=today()})}
   if(a==='hide')return act('mq_task_hide',Object.assign(adult(),{p_task:id}),'Квест убран',s=>{s.tasks=s.tasks.filter(t=>t.id!==id)});
   if(a==='icon'){U.icon=id;return render()}
   if(a==='quick'){const r=U.role;return act('mq_say',Object.assign(adult(),{p_body:id}),'Отправлено',s=>{s.msgs.unshift({id:'tmp'+Date.now(),from:r,body:id,sys:false,at:new Date().toISOString()})})}

@@ -182,8 +182,34 @@ function mq_settings(a) {
   return mq_state(a);
 }
 
+/* ---------- admin (dad only) ---------- */
+function admin_(a) {
+  var f = fam_(a.p_code);
+  if (a.p_role !== 'dad') { Utilities.sleep(300); fail_('not_admin'); }
+  adult_(f, a.p_role, a.p_pin);
+  return f;
+}
+function mq_msg_del(a) {
+  var f = admin_(a);
+  save_('msg', rows_('msg').filter(function (m) { return !(m.family_id === f.id && m.id === a.p_msg); }));
+  return mq_state(a);
+}
+function mq_msg_clear(a) {
+  var f = admin_(a);
+  save_('msg', rows_('msg').filter(function (m) { return m.family_id !== f.id; }));
+  return mq_state(a);
+}
+function mq_reset_progress(a) {
+  var f = admin_(a);
+  save_('done', rows_('done').filter(function (d) { return d.family_id !== f.id; }));
+  f.start_date = today_();
+  saveFam_(f);
+  return mq_state(a);
+}
+
 var API = { mq_state: mq_state, mq_set_pin: mq_set_pin, mq_check_pin: mq_check_pin, mq_mark: mq_mark, mq_decide: mq_decide,
-  mq_task_add: mq_task_add, mq_task_hide: mq_task_hide, mq_say: mq_say, mq_profile: mq_profile, mq_settings: mq_settings };
+  mq_task_add: mq_task_add, mq_task_hide: mq_task_hide, mq_say: mq_say, mq_profile: mq_profile, mq_settings: mq_settings,
+  mq_msg_del: mq_msg_del, mq_msg_clear: mq_msg_clear, mq_reset_progress: mq_reset_progress };
 
 function handle_(body) {
   var out;
