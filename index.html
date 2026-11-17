@@ -518,7 +518,7 @@ function kidView(){
   const f=fam();
   if(U.tab==='goal'){
     const marks=[25,50,75,100].map((m,i)=>`<span class="${pct()>=m?'hit':''}">${pct()>=m?'✔':'▫'} ${m}% · ${i<3?'уровень «'+LEVELS[i+1]+'»':'цель твоя'}</span>`).join('');
-    return `<h2>Твоя цель</h2><div class="card px"><div class="goal"><div class="phone"><div class="scr"><div class="fill" style="height:${pct()}%"></div><div class="pct">${pct()}%</div></div></div>
+    return `<button type="button" class="btn px" style="width:100%;margin-top:8px" data-act="video" data-id="melissa">▶ Как играть — смотри видео</button><h2>Твоя цель</h2><div class="card px"><div class="goal"><div class="phone"><div class="scr"><div class="fill" style="height:${pct()}%"></div><div class="pct">${pct()}%</div></div></div>
       <div class="marks"><b>${esc(f.goal_title)}</b>${marks}</div></div><p class="muted">Монеты только прибавляются. Их никто не отнимает.</p></div>
       <h2>Твой герой</h2><div class="avapick pick">${Object.keys(EMO).map(k=>`<button class="px" data-act="ava" data-id="${k}" aria-pressed="${f.avatar===k}" aria-label="${k}">${sprite(k)}</button>`).join('')}</div>
       <h2>Твой котик</h2><form class="card px" data-form="petname"><div class="row"><div class="field"><label for="pn">Как зовут котика?</label><input type="text" id="pn" maxlength="16" value="${esc(petName())}"></div><button class="btn px">Назвать</button></div>
@@ -552,7 +552,7 @@ function parentView(){
   }
   if(U.ptab==='more'){
     const link=location.origin+location.pathname+'#'+code;
-    return `<h2>Написать ${esc(f.child_name)}</h2><form class="card px" data-form="say"><div class="row"><input type="text" id="mt" maxlength="200" placeholder="Сообщение" aria-label="Сообщение" required><button class="btn px">Отправить</button></div>
+    return `<button type="button" class="btn px" style="width:100%;margin-top:8px" data-act="video" data-id="mama">▶ Видео-инструкция для родителей</button><h2>Написать ${esc(f.child_name)}</h2><form class="card px" data-form="say"><div class="row"><input type="text" id="mt" maxlength="200" placeholder="Сообщение" aria-label="Сообщение" required><button class="btn px">Отправить</button></div>
       <div class="row">${['Горжусь тобой!','Так держать!','Вижу, как ты стараешься'].map(q=>`<button type="button" class="btn flat px" data-act="quick" data-id="${q}">${q}</button>`).join('')}</div></form>
       <h2>${U.role==='dad'?'Чат':'Последние письма'}</h2>${D.msgs.slice(0,U.role==='dad'?40:8).map(msgHtml).join('')||'<p class="muted">Пока пусто.</p>'}
       <h2>Цель и срок</h2><form class="card px" data-form="settings"><div class="field"><label for="sg">Цель</label><input type="text" id="sg" maxlength="40" value="${esc(f.goal_title)}" required></div>
@@ -631,6 +631,7 @@ document.addEventListener('click',async e=>{
   if(a==='editx'){U.edit=null;return render()}
   if(a==='tpl'){const x=TPL[+id];if(!x)return;return act('mq_task_add',Object.assign(adult(),{p_title:x[1],p_icon:x[0],p_points:x[2],p_kind:x[3],p_timer:x[4],p_due:''}),'Квест добавлен: '+x[1],s=>{s.tasks.push({id:'tmp'+Date.now(),title:x[1],icon:x[0],points:x[3]==='care'?0:x[2],kind:x[3],timer:x[4],due:''})})}
   if(a==='pet'){petPoke();return}
+  if(a==='video'){if(AUD)AUD.pause();const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px';o.innerHTML='<video src="video/'+(id==='mama'?'mama':'melissa')+'.mp4" controls autoplay playsinline style="max-height:82vh;max-width:94vw;border-radius:14px"></video><button type="button" class="btn px">Закрыть</button>';o.querySelector('button').onclick=()=>o.remove();o.addEventListener('click',e=>{if(e.target===o)o.remove()});document.body.appendChild(o);return}
   if(a==='voice'){LS.set('voice',LS.get('voice')==='off'?'on':'off');if(LS.get('voice')!=='off')petSay('Мур! Теперь я разговариваю.',true,'v01');return render()}
   if(a==='quick'){const r=U.role;return act('mq_say',Object.assign(adult(),{p_body:id}),'Отправлено',s=>{s.msgs.unshift({id:'tmp'+Date.now(),from:r,body:id,sys:false,at:new Date().toISOString()})})}
   if(a==='copy'){try{await navigator.clipboard.writeText(id);toast('Ссылка скопирована')}catch(err){toast('Не получилось скопировать. Код: '+code)}return}
