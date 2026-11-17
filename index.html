@@ -393,7 +393,9 @@ function toast(t){U.toast=t;render();clearTimeout(toast.h);toast.h=setTimeout(()
 function accept(state){
   D=state;LS.set('theme',fam().theme);
   if(U.role==='kid'&&U.screen==='app'){
-    if(prevPoints!==null&&D.points>prevPoints){const n=D.points-prevPoints;coins();beep(880);setTimeout(()=>beep(1175),90);cheer('Квест подтвердили! +'+n+' '+plural(n,'монета','монеты','монет')+'!','')}
+    if(prevPoints!==null&&D.points>prevPoints){const n=D.points-prevPoints;coins();beep(880);setTimeout(()=>beep(1175),90);if(petOn())sayG('confirmed');else cheer('Квест подтвердили! +'+n+' '+plural(n,'монета','монеты','монет')+'!','')}
+    const rj=D.done.filter(d=>d.status==='rejected').map(d=>d.id),known=accept.rj;accept.rj=new Set(rj);
+    if(known&&rj.some(x=>!known.has(x)))setTimeout(()=>sayG('back'),400);
     const k='lvl_'+fam().season,seen=LS.get(k),lv=D.points>=fam().target?5:level();
     if(seen===null)LS.set(k,lv);
     else if(lv>+seen){LS.set(k,lv);if(!U.over)U.over=lv===5?'win':'level'}
@@ -444,32 +446,38 @@ const PET_SVG=`<svg viewBox="0 0 100 100" aria-hidden="true">
  <g transform="translate(62 20) rotate(18)"><path d="M0 0 L-9 -6 L-9 6 Z M0 0 L9 -6 L9 6 Z" fill="#ff6fa3" stroke="#e0548a" stroke-width="1.2" stroke-linejoin="round"/><circle r="2.6" fill="#ff8fb8" stroke="#e0548a" stroke-width="1.2"/></g>
 </svg>`;
 const PET=document.createElement('div');PET.className='pet';PET.innerHTML='<div class="bub" role="status" aria-live="polite"></div><button class="petbody" data-act="pet" aria-label="Котик"><span class="flip">'+PET_SVG+'</span></button>';
-const PRAISE=['Ура! Ты молодец!','Вот это да! Так держать!','Супер! Я тобой горжусь!','Отлично! Мама скоро проверит.','Мур-мур! Ещё одна монетка на подходе!','Ты настоящая героиня!'];
+const PH={"greet_morning":[["g01","Доброе утро, Мелисса! Новый день — новые квесты."],["g02","Мур, проснулась? Пойдём собирать монетки!"],["g03","Доброе утро! Начнём с простого: заправим постель?"],["g04","Утро — лучшее время для подвигов. Погнали!"],["g05","Привет-привет! Мне без тебя было скучно."]],"greet_day":[["g06","Привет, Мелисса! Как дела в школе?"],["g07","О, ты пришла! Посмотрим, что у нас на сегодня."],["g08","Привет! Сначала перекус, потом квесты?"],["g09","Мур! Уроки ждут, а монетки — тем более."]],"greet_evening":[["g10","Добрый вечер! Ещё есть время собрать монетки."],["g11","Вечер — время закончить начатое. Я с тобой!"],["g12","Привет! Не забудь почистить зубы перед сном."],["g13","Добрый вечер, Мелисса! Что сегодня успели?"]],"greet_weekend":[["g14","Сегодня выходной! Уроков нет, но квесты ждут."],["g15","Ура, выходные! Самое время для квестов недели."],["g16","Выходной! Сделаем пару дел — и гулять?"]],"streak":[["s01","Ты не пропускаешь ни дня! Так держать!"],["s02","Серия продолжается! Вот это упорство!"],["s03","Каждый день в деле! Я тобой горжусь!"]],"praise":[["p01","Ура! Ты молодец!"],["p02","Вот это да! Так держать!"],["p03","Супер! Я тобой горжусь!"],["p04","Отлично! Мама скоро проверит."],["p05","Мур-мур! Ещё одна монетка на подходе!"],["p06","Ты настоящая героиня!"],["p07","Класс! Вот это скорость!"],["p08","Браво! Дело сделано!"],["p09","Ты просто чемпионка!"],["p10","У меня от радости хвост трубой!"],["p11","Есть! Ещё на шаг ближе к цели!"],["p12","Молодчина! Так и надо!"],["p13","Вот это я понимаю — работа!"],["p14","Пять с плюсом! Дай лапку!"],["p15","Делу время, а монеткам — копилка!"]],"care":[["cr1","Отмечено! Забота о себе — это важно."],["cr2","Чистота — залог здоровья! Мур!"],["cr3","Ты заботишься о себе. Это очень правильно!"],["cr4","Блестят зубки, сияет улыбка!"]],"confirmed":[["c01","Квест подтвердили! Монетки твои!"],["c02","Дзынь! Монетки упали в копилку!"],["c03","Подтверждено! Шкала подросла!"],["c04","Ура, засчитали! Ты заработала это сама."],["c05","Монетки приехали! Копилка звенит!"],["c06","Есть подтверждение! Цель всё ближе!"],["c07","Звенит копилка — значит, ты молодец!"],["c08","Засчитано! Никто и не сомневался!"]],"back":[["b01","Ничего страшного! Чуть-чуть доделаем — и готово."],["b02","Попросили доделать. Ты справишься, я рядом!"],["b03","Почти получилось! Ещё капельку стараний."],["b04","Доделаем вместе? Это быстро!"]],"alldone":[["a01","Все квесты на сегодня сделаны! Ты чемпионка!"],["a02","Всё! Сегодня ты сделала всё. Можно отдыхать!"],["a03","Ни одного квеста не осталось! Вот это день!"],["a04","Миссия выполнена! Горжусь тобой!"],["a05","Сегодня ты супергерой! Все дела сделаны."]],"timer_start":[["t01","Таймер пошёл! Я засекаю, а ты делай."],["t02","Время пошло! Я смотрю на часы."],["t03","Поехали! Не отвлекайся, я слежу за временем."],["t04","Старт! Как закончится время — я скажу."]],"timer_end":[["te1","Время вышло! Ты справилась!"],["te2","Дзынь! Таймер закончился. Молодец!"],["te3","Готово! Вот это выдержка!"]],"level":[["l01","Новый уровень! Ты растёшь на глазах!"],["l02","Ого, новый уровень! Ещё чуть-чуть до цели!"],["l03","Уровень повышен! Я тобой горжусь!"]],"win":[["w01","Цель достигнута! Ты заработала это сама! Зови маму и папу!"],["w02","Ура-ура! Ты сделала это! Самый лучший день!"]],"poke":[["k01","Мур! Почеши меня за ушком."],["k02","Нажми на квест, когда сделаешь, и я порадуюсь!"],["k03","Я в тебя верю!"],["k04","Монетки только прибавляются. Их никто не отнимет!"],["k05","Большое дело легче начать с маленького шага."],["k06","Если трудно — сделай чуть-чуть. Это уже победа!"],["k07","Хочешь, расскажу секрет? Ты лучшая!"],["k08","Мяу! Я тут, если что."],["k09","Загляни в почту. Вдруг там письмо?"],["k10","Кто молодец? Ты молодец!"],["k11","Мур-р-р… Люблю, когда ты рядом."],["k12","Давай сначала самое лёгкое, а потом посложнее?"],["k13","Отдыхать тоже важно. Но сначала один квест!"],["k14","Щекотно! Хи-хи!"],["k15","Знаешь, что я люблю? Звон монеток в копилке!"],["k16","Когда сделаешь уроки, голова скажет тебе спасибо."],["k17","Я считаю твои монетки. Их всё больше!"],["k18","Мур! Ты сегодня такая молодец."]],"misc":[["n01","Ура! Теперь у меня есть имя!"],["v01","Мур! Теперь я разговариваю."]]};
+/* pick a phrase from a group, avoiding the last few said */
+function pick(g){const list=PH[g]||[];let recent=[];try{recent=JSON.parse(LS.get('said')||'[]')}catch(e){}
+  let pool=list.filter(x=>!recent.includes(x[0]));if(!pool.length)pool=list;const x=pool[Math.floor(Math.random()*pool.length)];
+  recent=[x[0],...recent.filter(r=>r!==x[0])].slice(0,30);LS.set('said',JSON.stringify(recent));return x}
 function petName(){return LS.get('petname')||'Мурка'}
 function petOn(){return D&&U.screen==='app'&&U.role==='kid'}
-let petX=40,petTimer=null,voices=[];
-try{const lv=()=>{voices=speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang))};lv();speechSynthesis.onvoiceschanged=lv}catch(e){}
-function speak(t){if(LS.get('voice')==='off')return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/[^\p{L}\p{N}\s.,!?+-]/gu,''));u.lang='ru-RU';if(voices[0])u.voice=voices.find(v=>/female|жен|milena|irina|alena|yuliya/i.test(v.name))||voices[0];u.rate=1.05;u.pitch=1.5;speechSynthesis.speak(u)}catch(e){}}
-function petSay(t,jump){if(!petOn())return;const b=PET.querySelector('.bub');b.textContent=t;PET.classList.add('talk');if(jump!==false){PET.classList.remove('jump');void PET.offsetWidth;PET.classList.add('jump')}
-  speak(t);clearTimeout(petSay.h);petSay.h=setTimeout(()=>PET.classList.remove('talk'),Math.max(3200,t.length*80))}
+let petX=40,VOICE=null,AUD=null;
+fetch('voice/list.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]).then(l=>{VOICE=new Set(l)}).catch(()=>{VOICE=new Set()});
+function play(id){if(!id||LS.get('voice')==='off'||!VOICE||!VOICE.has(id))return;try{if(AUD)AUD.pause();AUD=new Audio('voice/'+id+'.mp3');AUD.play().catch(()=>{})}catch(e){}}
+function sayG(g,jump){const x=pick(g);if(x)petSay(x[1],jump,x[0])}
+function petSay(t,jump,id){if(!petOn())return;const b=PET.querySelector('.bub');b.textContent=t;PET.classList.add('talk');if(jump!==false){PET.classList.remove('jump');void PET.offsetWidth;PET.classList.add('jump')}
+  play(id);clearTimeout(petSay.h);petSay.h=setTimeout(()=>PET.classList.remove('talk'),Math.max(3200,t.length*80))}
 function petWalk(){if(!petOn()||PET.classList.contains('talk'))return;const g=$('game');if(!g)return;const w=g.clientWidth-90;const nx=Math.round(10+Math.random()*Math.max(20,w-10));
   PET.classList.toggle('left',nx<petX);PET.classList.add('walk');PET.style.left=nx+'px';petX=nx;clearTimeout(petWalk.h);petWalk.h=setTimeout(()=>PET.classList.remove('walk'),2600)}
-function petPoke(){const left=Math.max(0,fam().target-D.points),todo=D.tasks.filter(t=>['day','school','alt'].includes(t.kind)&&statusOf(t).s==='todo').length;
-  const tips=['Мур! Я '+petName()+'. Я всегда рядом.','Нажми на квест, когда сделаешь, и я порадуюсь!',todo?'Сегодня осталось квестов: '+todo+'. Справишься!':'Все квесты на сегодня сделаны! Ты чемпион!','До цели осталось '+left+' '+plural(left,'монета','монеты','монет')+'. Мы дойдём!','Я в тебя верю!','Мяу! Почеши меня за ушком.'];
-  petSay(tips[Math.floor(Math.random()*tips.length)])}
-function petGreet(){const k='greet_'+today();if(LS.get(k))return;LS.set(k,'1');const todo=D.tasks.filter(t=>['day','school','alt'].includes(t.kind)&&statusOf(t).s==='todo').length;
-  setTimeout(()=>petSay('Привет, '+fam().child_name+'! Я '+petName()+'. Сегодня '+todo+' '+plural(todo,'квест','квеста','квестов')+'. Начнём?'),700)}
+function petPoke(){if(Math.random()<.2){const left=Math.max(0,fam().target-D.points),todo=D.tasks.filter(t=>['day','school','alt'].includes(t.kind)&&statusOf(t).s==='todo').length;
+    return petSay(Math.random()<.5&&todo?'Сегодня осталось квестов: '+todo+'. Справишься!':'До цели осталось '+left+' '+plural(left,'монета','монеты','монет')+'. Мы дойдём!')}
+  sayG('poke')}
+function petGreet(){const k='greet_'+today();if(LS.get(k))return;LS.set(k,'1');const h=new Date().getHours();
+  const g=streak()>=3&&Math.random()<.4?'streak':isWeekend()&&Math.random()<.6?'greet_weekend':h<12?'greet_morning':h<18?'greet_day':'greet_evening';
+  setTimeout(()=>sayG(g),700)}
 setInterval(()=>{if(!document.hidden&&Math.random()<.6)petWalk()},9000);
 
 function cheer(t,sub){if(petOn()){petSay(t+(sub?' '+sub:''));return}const el=$('cheer');if(!el)return;el.innerHTML='<b>'+esc(t)+'</b><span>'+esc(sub||'')+'</span>';el.classList.add('on');clearTimeout(cheer.h);cheer.h=setTimeout(()=>el.classList.remove('on'),2200)}
-function markQuest(id){
+function markQuest(id,quiet){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;const day=today(),care=t.kind==='care';
   const p=act('mq_mark',{p_task:id,p_day:day},null,s=>{const q=s.tasks.find(x=>x.id===id);if(!q)return;const ex=s.done.find(d=>d.task_id===id&&d.day===day);
     if(ex){if(ex.status==='rejected')ex.status='pending'}
     else s.done.push({id:'tmp'+Date.now(),task_id:id,day,status:care?'approved':'pending',points:0,by:null,title:q.title,icon:q.icon,tp:q.points,kind:q.kind,at:new Date().toISOString(),due:q.due||''})});
   coins();beep(784);setTimeout(()=>beep(988),90);setTimeout(()=>beep(1319,.15),180);
-  cheer(care?'Ура! Отмечено!':PRAISE[Math.floor(Math.random()*PRAISE.length)],care?'Забота о себе — это важно.':'');
-  setTimeout(()=>{if(D.tasks.filter(t=>['day','school','alt'].includes(t.kind)).every(t=>statusOf(t).s!=='todo'&&statusOf(t).s!=='back'))petSay('Все квесты на сегодня сделаны! Ты чемпион!')},4200);
+  if(petOn()&&!quiet)sayG(care?'care':'praise');else if(!petOn())cheer(care?'Ура! Отмечено!':'Ура! Выполнено!','');
+  setTimeout(()=>{if(D.tasks.filter(t=>['day','school','alt'].includes(t.kind)).every(t=>statusOf(t).s!=='todo'&&statusOf(t).s!=='back'))sayG('alldone')},4200);
   return p;
 }
 const adult=()=>({p_role:U.role,p_pin:U.pin});
@@ -514,7 +522,7 @@ function kidView(){
       <div class="marks"><b>${esc(f.goal_title)}</b>${marks}</div></div><p class="muted">Монеты только прибавляются. Их никто не отнимает.</p></div>
       <h2>Твой герой</h2><div class="avapick pick">${Object.keys(EMO).map(k=>`<button class="px" data-act="ava" data-id="${k}" aria-pressed="${f.avatar===k}" aria-label="${k}">${sprite(k)}</button>`).join('')}</div>
       <h2>Твой котик</h2><form class="card px" data-form="petname"><div class="row"><div class="field"><label for="pn">Как зовут котика?</label><input type="text" id="pn" maxlength="16" value="${esc(petName())}"></div><button class="btn px">Назвать</button></div>
-      <button type="button" class="btn flat px" data-act="voice">${LS.get('voice')==='off'?'🔇 Котик молчит. Включить голос':'🔊 Котик говорит. Выключить голос'}</button></form>
+      <button type="button" class="btn flat px" data-act="voice">${LS.get('voice')==='off'?'🔇 Звук котика выключен. Включить':'🔊 Звук котика включён. Выключить'}</button></form>
       <h2>Как выглядит игра</h2><div class="row pick"><button class="btn flat px" data-act="theme" data-id="glass" aria-pressed="${theme()==='glass'}">Стекло и лампы</button><button class="btn flat px" data-act="theme" data-id="pixel" aria-pressed="${theme()==='pixel'}">Пиксели</button></div>`;
   }
   if(U.tab==='mail')return `<h2>Почта</h2><form class="card px" data-form="say"><div class="row"><input type="text" id="mt" maxlength="200" placeholder="Написать маме и папе" aria-label="Сообщение" required><button class="btn px">Отправить</button></div></form>`
@@ -594,8 +602,8 @@ function render(){
 
 /* ---------- actions ---------- */
 function enter(role){U.role=role;U.screen='app';U.err='';LS.set('role',role);prevPoints=D.points;if(role==='kid'){petGreet();const k='lvl_'+fam().season;if(LS.get(k)===null)LS.set(k,D.points>=fam().target?5:level())}render()}
-function startTimer(id){const tk=D.tasks.find(x=>x.id===id);U.timer={id,title:tk?tk.title:'Таймер',end:Date.now()+((tk&&tk.timer)||5)*60000};petSay('Таймер пошёл! Я засекаю, а ты делай.');U.over='timer';render();clearInterval(startTimer.h);
-  startTimer.h=setInterval(()=>{if(Date.now()>=U.timer.end){clearInterval(startTimer.h);const t=U.timer.id;U.timer=null;U.over=null;markQuest(t)}else render()},1000)}
+function startTimer(id){const tk=D.tasks.find(x=>x.id===id);U.timer={id,title:tk?tk.title:'Таймер',end:Date.now()+((tk&&tk.timer)||5)*60000};sayG('timer_start');U.over='timer';render();clearInterval(startTimer.h);
+  startTimer.h=setInterval(()=>{if(Date.now()>=U.timer.end){clearInterval(startTimer.h);const t=U.timer.id;U.timer=null;U.over=null;render();sayG('timer_end');markQuest(t,true)}else render()},1000)}
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
   if(a==='retry'){U.err='';render();return boot()}
@@ -605,7 +613,7 @@ document.addEventListener('click',async e=>{
   if(a==='tab'){if(U.role==='kid'){U.tab=id;if(id==='mail'&&D.msgs[0])LS.set('seen',D.msgs[0].at)}else U.ptab=id;beep(440,.04);return render()}
   if(a==='tap'){const t=D.tasks.find(x=>x.id===id);if(!t)return;if(t.timer)return startTimer(id);return markQuest(id)}
   if(a==='stop'){clearInterval(startTimer.h);U.timer=null;U.over=null;return render()}
-  if(a==='close'){U.over=null;return render()}
+  if(a==='close'){const was=U.over;U.over=null;render();if(was==='level'||was==='win')setTimeout(()=>sayG(was),300);return}
   if(a==='ava')return act('mq_profile',{p_avatar:id,p_theme:null},null,s=>{s.family.avatar=id});
   if(a==='theme'){LS.set('mytheme',id);return act('mq_profile',{p_avatar:null,p_theme:id},null,s=>{s.family.theme=id})}
   if(a==='mytheme'){LS.set('mytheme',id);return render()}
@@ -623,7 +631,7 @@ document.addEventListener('click',async e=>{
   if(a==='editx'){U.edit=null;return render()}
   if(a==='tpl'){const x=TPL[+id];if(!x)return;return act('mq_task_add',Object.assign(adult(),{p_title:x[1],p_icon:x[0],p_points:x[2],p_kind:x[3],p_timer:x[4],p_due:''}),'Квест добавлен: '+x[1],s=>{s.tasks.push({id:'tmp'+Date.now(),title:x[1],icon:x[0],points:x[3]==='care'?0:x[2],kind:x[3],timer:x[4],due:''})})}
   if(a==='pet'){petPoke();return}
-  if(a==='voice'){LS.set('voice',LS.get('voice')==='off'?'on':'off');if(LS.get('voice')!=='off')petSay('Мур! Теперь я разговариваю.');return render()}
+  if(a==='voice'){LS.set('voice',LS.get('voice')==='off'?'on':'off');if(LS.get('voice')!=='off')petSay('Мур! Теперь я разговариваю.',true,'v01');return render()}
   if(a==='quick'){const r=U.role;return act('mq_say',Object.assign(adult(),{p_body:id}),'Отправлено',s=>{s.msgs.unshift({id:'tmp'+Date.now(),from:r,body:id,sys:false,at:new Date().toISOString()})})}
   if(a==='copy'){try{await navigator.clipboard.writeText(id);toast('Ссылка скопирована')}catch(err){toast('Не получилось скопировать. Код: '+code)}return}
 });
@@ -638,7 +646,7 @@ document.addEventListener('submit',async e=>{
     const r=kid?'child':U.role;await act('mq_say',kid?{p_role:'child',p_pin:null,p_body:t}:Object.assign(adult(),{p_body:t}),'Отправлено',s=>{s.msgs.unshift({id:'tmp'+Date.now(),from:r,body:t,sys:false,at:new Date().toISOString()})})}
   else if(f==='edit'){const id=e.target.dataset.id,ep=$('ep'),pts=ep?+ep.value:null,due=$('ed').value||'',tm=+$('et').value;U.edit=null;
     await act('mq_task_edit',Object.assign(adult(),{p_task:id,p_points:pts,p_due:due,p_timer:tm}),'Сохранено',s=>{const t=s.tasks.find(x=>x.id===id);if(!t)return;if(pts!=null&&t.kind!=='care')t.points=Math.max(1,Math.min(10,pts||t.points));t.due=due;t.timer=tm})}
-  else if(f==='petname'){const n=$('pn').value.trim().slice(0,16);if(n){LS.set('petname',n);petSay('Ура! Теперь меня зовут '+n+'!')}render()}
+  else if(f==='petname'){const n=$('pn').value.trim().slice(0,16);if(n){LS.set('petname',n);petSay('Ура! Теперь у меня есть имя!',true,'n01')}render()}
   else if(f==='task'){const t=$('nt').value.trim();if(!t)return;const args=Object.assign(adult(),{p_title:t,p_icon:U.icon,p_points:+$('np').value||1,p_kind:$('nk').value});$('nt').value='';
     await act('mq_task_add',args,'Квест добавлен')}
   else if(f==='settings'){await act('mq_settings',Object.assign(adult(),{p_goal:$('sg').value,p_target:+$('st').value,p_days:+$('sd').value,p_start:$('ss').value}),'Сохранено')}
