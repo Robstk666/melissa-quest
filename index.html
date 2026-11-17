@@ -264,7 +264,7 @@ label{font-size:14px;color:var(--dim)}
 .pet .tail{transform-origin:70px 74px;animation:wag 1.6s ease-in-out infinite alternate}
 .pet .bub{position:absolute;bottom:88px;left:-6px;width:max-content;max-width:230px;background:#fff;color:#2a1d4a;font-weight:700;font-size:15px;line-height:1.3;padding:9px 12px;border-radius:16px;
   box-shadow:0 6px 18px rgba(0,0,0,.3);opacity:0;transform:translateY(6px) scale(.9);transform-origin:20px 100%;transition:opacity .2s,transform .2s;pointer-events:none}
-.pet .bub::after{content:"";position:absolute;left:26px;bottom:-7px;border:8px solid transparent;border-top-color:#fff;border-bottom:0}
+.pet .bub::after{content:"";position:absolute;left:var(--tail,26px);bottom:-7px;border:8px solid transparent;border-top-color:#fff;border-bottom:0}
 .pet.talk .bub{opacity:1;transform:none}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
 @keyframes step{to{transform:translateY(-3px)}}
@@ -457,7 +457,10 @@ let petX=40,VOICE=null,AUD=null;
 fetch('voice/list.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]).then(l=>{VOICE=new Set(l)}).catch(()=>{VOICE=new Set()});
 function play(id){if(!id||LS.get('voice')==='off'||!VOICE||!VOICE.has(id))return;try{if(AUD)AUD.pause();AUD=new Audio('voice/'+id+'.mp3');AUD.play().catch(()=>{})}catch(e){}}
 function sayG(g,jump){const x=pick(g);if(x)petSay(x[1],jump,x[0])}
-function petSay(t,jump,id){if(!petOn())return;const b=PET.querySelector('.bub');b.textContent=t;PET.classList.add('talk');if(jump!==false){PET.classList.remove('jump');void PET.offsetWidth;PET.classList.add('jump')}
+function fitBub(){const g=$('game'),b=PET&&PET.querySelector('.bub');if(!g||!b)return;const W=g.clientWidth,pw=PET.offsetWidth||84;
+  b.style.maxWidth=Math.min(230,W-16)+'px';const bw=b.offsetWidth;let off=-6;if(petX+off+bw>W-8)off=W-8-bw-petX;if(petX+off<8)off=8-petX;
+  b.style.left=off+'px';const tl=Math.max(12,Math.min(bw-28,pw/2-8-off));b.style.setProperty('--tail',tl+'px');b.style.transformOrigin=(tl+8)+'px 100%'}
+function petSay(t,jump,id){if(!petOn())return;const b=PET.querySelector('.bub');b.textContent=t;fitBub();PET.classList.add('talk');if(jump!==false){PET.classList.remove('jump');void PET.offsetWidth;PET.classList.add('jump')}
   play(id);clearTimeout(petSay.h);petSay.h=setTimeout(()=>PET.classList.remove('talk'),Math.max(3200,t.length*80))}
 function petWalk(){if(!petOn()||PET.classList.contains('talk'))return;const g=$('game');if(!g)return;const w=g.clientWidth-90;const nx=Math.round(10+Math.random()*Math.max(20,w-10));
   PET.classList.toggle('left',nx<petX);PET.classList.add('walk');PET.style.left=nx+'px';petX=nx;clearTimeout(petWalk.h);petWalk.h=setTimeout(()=>PET.classList.remove('walk'),2600)}
@@ -595,7 +598,7 @@ function render(){
   if(U.toast)h+=`<div class="toast px" role="status">${esc(U.toast)}</div>`;
   g.innerHTML=h;
   const nv=g.querySelector('.view');if(nv)nv.scrollTop=sc;
-  if(petOn()&&!U.over){g.appendChild(PET);PET.style.left=petX+'px'}
+  if(petOn()&&!U.over){g.appendChild(PET);petX=Math.max(10,Math.min(petX,g.clientWidth-90));PET.style.left=petX+'px'}
   Object.keys(keep).forEach(id=>{const el=$(id);if(el&&keep[id]!==''&&!['sg','st','sd','ss'].includes(id)||el&&id===fid)el.value=keep[id]});
   if(fid){const el=$(fid);if(el){el.value=fval;el.focus()}}
 }
