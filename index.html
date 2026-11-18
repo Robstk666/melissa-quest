@@ -455,7 +455,7 @@ function petName(){return LS.get('petname')||'Мурка'}
 function petOn(){return D&&U.screen==='app'&&U.role==='kid'}
 let petX=40,VOICE=null,AUD=null;
 fetch('voice/list.json',{cache:'no-cache'}).then(r=>r.ok?r.json():[]).then(l=>{VOICE=new Set(l)}).catch(()=>{VOICE=new Set()});
-function play(id){if(!id||LS.get('voice')==='off'||!VOICE||!VOICE.has(id))return;try{if(AUD)AUD.pause();AUD=new Audio('voice/'+id+'.mp3');AUD.play().catch(()=>{})}catch(e){}}
+function play(id){if(!id||LS.get('voice')==='off'||!VOICE||!VOICE.has(id))return;try{if(AUD)AUD.pause();AUD=new Audio('voice/'+id+'.mp3?v=2');AUD.play().catch(()=>{})}catch(e){}}
 function sayG(g,jump){const x=pick(g);if(x)petSay(x[1],jump,x[0])}
 function fitBub(){const g=$('game'),b=PET&&PET.querySelector('.bub');if(!g||!b)return;const W=g.clientWidth,pw=PET.offsetWidth||84;
   b.style.maxWidth=Math.min(230,W-16)+'px';const bw=b.offsetWidth;let off=-6;if(petX+off+bw>W-8)off=W-8-bw-petX;if(petX+off<8)off=8-petX;
@@ -634,7 +634,7 @@ document.addEventListener('click',async e=>{
   if(a==='editx'){U.edit=null;return render()}
   if(a==='tpl'){const x=TPL[+id];if(!x)return;return act('mq_task_add',Object.assign(adult(),{p_title:x[1],p_icon:x[0],p_points:x[2],p_kind:x[3],p_timer:x[4],p_due:''}),'Квест добавлен: '+x[1],s=>{s.tasks.push({id:'tmp'+Date.now(),title:x[1],icon:x[0],points:x[3]==='care'?0:x[2],kind:x[3],timer:x[4],due:''})})}
   if(a==='pet'){petPoke();return}
-  if(a==='video'){if(AUD)AUD.pause();const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px';o.innerHTML='<video src="video/'+(id==='mama'?'mama':'melissa')+'.mp4" controls autoplay playsinline style="max-height:82vh;max-width:94vw;border-radius:14px"></video><button type="button" class="btn px">Закрыть</button>';o.querySelector('button').onclick=()=>o.remove();o.addEventListener('click',e=>{if(e.target===o)o.remove()});document.body.appendChild(o);return}
+  if(a==='video'){if(AUD)AUD.pause();const o=document.createElement('div');o.style.cssText='position:fixed;inset:0;z-index:999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px';o.innerHTML='<video src="video/'+(id==='mama'?'mama':'melissa')+'.mp4?v=2" controls autoplay playsinline style="max-height:82vh;max-width:94vw;border-radius:14px"></video><button type="button" class="btn px">Закрыть</button>';o.querySelector('button').onclick=()=>o.remove();o.addEventListener('click',e=>{if(e.target===o)o.remove()});document.body.appendChild(o);return}
   if(a==='voice'){LS.set('voice',LS.get('voice')==='off'?'on':'off');if(LS.get('voice')!=='off')petSay('Мур! Теперь я разговариваю.',true,'v01');return render()}
   if(a==='quick'){const r=U.role;return act('mq_say',Object.assign(adult(),{p_body:id}),'Отправлено',s=>{s.msgs.unshift({id:'tmp'+Date.now(),from:r,body:id,sys:false,at:new Date().toISOString()})})}
   if(a==='copy'){try{await navigator.clipboard.writeText(id);toast('Ссылка скопирована')}catch(err){toast('Не получилось скопировать. Код: '+code)}return}
